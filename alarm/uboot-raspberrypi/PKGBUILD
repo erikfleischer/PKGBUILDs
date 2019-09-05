@@ -4,7 +4,7 @@
 buildarch=12
 
 pkgname=uboot-raspberrypi
-pkgver=2017.09
+pkgver=2019.04
 pkgrel=1
 pkgdesc="U-Boot for Raspberry Pi"
 arch=('armv7h' 'aarch64')
@@ -14,12 +14,12 @@ backup=('boot/boot.txt' 'boot/boot.scr' 'boot/config.txt')
 makedepends=('bc' 'dtc' 'git')
 conflicts_armv7h=('linux-raspberrypi')
 source=("ftp://ftp.denx.de/pub/u-boot/u-boot-${pkgver/rc/-rc}.tar.bz2"
-        '0001-arch-linux-arm-modifications.patch'
+        '0001-Fix-bcm2835_video_probe-with-newer-firmware.patch'
         'boot.txt.v2'
         'boot.txt.v3'
         'mkscr')
-md5sums=('9f7eb7db4530996a28e86f38f3b3e66f'
-         'f8ae1ac4c0bd70712a7cb36967ad35fb'
+md5sums=('543299cbbf0b9c0ae0c9579a006df2b7'
+         '7ca52bae8504e22e3ca0300c8ccf5866'
          '69e883f0b8d1686b32bdf79684623f06'
          'be8abe44b86d63428d7ac3acc64ee3bf'
          '021623a04afd29ac3f368977140cfbfd')
@@ -27,7 +27,7 @@ md5sums=('9f7eb7db4530996a28e86f38f3b3e66f'
 prepare() {
   cd u-boot-${pkgver/rc/-rc}
 
-  git apply ../0001-arch-linux-arm-modifications.patch
+  patch -p1 -i ../0001-Fix-bcm2835_video_probe-with-newer-firmware.patch
 }
 
 build() {

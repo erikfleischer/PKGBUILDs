@@ -1,39 +1,31 @@
-# $Id$
 # Maintainer: Ronald van Haren <ronald@archlinux.org>
 # Contributor: Enlightenment Developers <enlightenment-devel@enlightenment.org>
 
 # ALARM: Kevin Mihelich <kevin@archlinuxarm.org>
 #  - configure with --disable-neon for !aarch64
+#  - aarch64: depend on lua52, configure with --enable-lua-old
 
 pkgbase=efl
 pkgname=('efl' 'efl-docs')
-pkgver=1.20.3
-pkgrel=2
+pkgver=1.22.2
+pkgrel=1
 pkgdesc="Enlightenment Foundation Libraries"
-arch=('i686' 'x86_64')
+arch=('x86_64')
 url="https://www.enlightenment.org"
 license=('BSD' 'LGPL2.1' 'GPL2' 'custom')
 depends=('bullet' 'libjpeg-turbo' 'gst-plugins-base'
          'luajit' 'curl' 'fribidi' 'libpulse' 'libxcomposite'
          'libxinerama' 'libxrandr' 'libxss' 'libinput'
          'libxcursor' 'libxp' 'libwebp' 'shared-mime-info'
-         'libxkbcommon' 'wayland' 'lz4' 'openjpeg' 'avahi'
-         'libspectre' 'libraw' 'librsvg' 'wayland-protocols')
+         'libxkbcommon' 'libxkbcommon-x11' 'wayland' 'lz4' 'openjpeg' 'avahi'
+         'libspectre' 'libraw' 'librsvg' 'wayland-protocols'
+         'mesa' 'hicolor-icon-theme' 'poppler')
+depends_aarch64=('lua52')
 optdepends=('python2: einabench-cmp' 'libreoffice: thumbnailing for DOC/PPT/XLS files')
-makedepends=('doxygen' 'python' 'texlive-core' 'ghostscript' 'imagemagick' 'mesa')
+makedepends=('doxygen' 'python' 'texlive-core' 'ghostscript' 'imagemagick')
 options=('!emptydirs')
-source=(https://download.enlightenment.org/rel/libs/${pkgname}/$pkgname-$pkgver.tar.xz
-        eina_doxygen.patch)
-sha1sums=('df2cd1d1eab6e6396a0abd5a60c2f17101ced027'
-          'ef2b961e793c711685623a149ab55b1bec9a3676')
-
-prepare() {
-  cd "${srcdir}/${pkgname}-${pkgver}"
-  sed -i 's/env python$/&2/' src/scripts/eina/eina-bench-cmp
-
-  # fix docs building
-  patch -Np0 -i ${srcdir}/eina_doxygen.patch
-}
+source=(https://download.enlightenment.org/rel/libs/${pkgname}/$pkgname-$pkgver.tar.xz)
+sha256sums=('1699891f825911622de0aa77fe1140eff7335aba619d2352485e54dcff6b1cd0')
 
 build() {
   cd "${srcdir}/${pkgname}-${pkgver}"
@@ -41,6 +33,7 @@ build() {
   export CFLAGS="$CFLAGS -fvisibility=hidden"
 
   [[ $CARCH != "aarch64" ]] && CONFIG="--disable-neon"
+  [[ $CARCH == "aarch64" ]] && CONFIG="--enable-lua-old"
 
   ./configure --prefix=/usr \
   --disable-static --disable-tslib --enable-fb \
@@ -49,7 +42,10 @@ build() {
   --enable-liblz4 --enable-drm --enable-elput --enable-egl --with-opengl=es $CONFIG
 
   make
-  make -j1 doc || return 0  # don't fail on the docs
+
+  cd doc
+  doxygen
+  #make -j1 doc || return 0  # don't fail on the docs
 }
 
 package_efl(){

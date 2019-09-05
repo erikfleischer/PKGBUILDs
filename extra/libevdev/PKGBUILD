@@ -1,21 +1,20 @@
-# $Id$
 # Maintainer: Andreas Radke <andyrtr@archlinux.org>
 
 # ALARM: Kevin Mihelich <kevin@archlinuxarm.org>
 #  - drop valgrind makedepend
 
 pkgname=libevdev
-pkgver=1.5.7
+pkgver=1.8.0
 pkgrel=1
 pkgdesc="Wrapper library for evdev devices"
-arch=(i686 x86_64)
-url="http://www.freedesktop.org/wiki/Software/libevdev/"
+arch=(x86_64)
+url="https://www.freedesktop.org/wiki/Software/libevdev/"
 license=(custom:X11)
 depends=('glibc')
 makedepends=('python2' 'check' 'doxygen')
 #checkdepends=('kmod')
 source=(https://freedesktop.org/software/$pkgname/$pkgname-$pkgver.tar.xz{,.sig})
-sha512sums=('53adf6c92ec61f0635b643a88d8762a18f7cd3088d23ac95831be32cc7150ebd19f20265b90f6a1f9a63420c2f8968c2d17d8dc4892c0e90f9dfcce82c622df1'
+sha512sums=('8d285632f4fe87c01e81f94e514bec4e37fed4bc44d6d38b9297dba1114e42f6ed8d143fc05f3d0e8d51b08b659e34481dc4c65f60421c54e2f3e11efbafdeb4'
             'SKIP')
 validpgpkeys=('3C2C43D9447D5938EF4551EBE23B7E70B467F0BF') # Peter Hutterer (Who-T) <office@who-t.net>
 

@@ -1,101 +1,100 @@
-# $Id$
 # Maintainer: Ray Rashif <schiv@archlinux.org>
 # Contributor: Tobias Powalowski <tpowa@archlinux.org>
 
 # ALARM: Kevin Mihelich <kevin@archlinuxarm.org>
-#  - remove intel-tbb depend for v5 and v6
-#  - depend on protobuf to skip building old, broken, bundled version
+#  - remove -DCPU_BASELINE_{ENABLE,DISABLE} flags for SSE
+#  - link with libatomic on v5/v6
 
 pkgbase=opencv
-pkgname=('opencv' 'opencv-samples')
-pkgver=3.3.1
-pkgrel=2
+pkgname=(opencv opencv-samples)
+pkgver=4.1.1
+pkgrel=1
 pkgdesc="Open Source Computer Vision Library"
-arch=('i686' 'x86_64')
-license=('BSD')
-url="http://opencv.org/"
-depends=('openexr' 'xine-lib' 'libdc1394' 'gtkglext' 'protobuf')
-depends_armv7h=('intel-tbb')
-depends_aarch64=('intel-tbb')
-makedepends=('cmake' 'python-numpy' 'python2-numpy' 'mesa' 'eigen' 'hdf5')
-optdepends=('opencv-samples'
-            'hdf5: support for HDF5 format'
+arch=(x86_64)
+license=(BSD)
+url="https://opencv.org/"
+depends=(intel-tbb openexr gst-plugins-base libdc1394 cblas lapack libgphoto2 jasper ffmpeg)
+makedepends=(cmake python-numpy python-setuptools mesa eigen hdf5 lapacke gtk3 vtk glew ant java-environment)
+optdepends=('opencv-samples: samples'
+            'gtk3: for the HighGUI module and the Python bindings'
+            'vtk: for the viz module'
+            'hdf5: for the HDF5 module and the Python bindings'
             'opencl-icd-loader: For coding with OpenCL'
-            'python-numpy: Python 3 interface'
-            'python2-numpy: Python 2 interface')
+            'python-numpy: Python bindings'
+            'java-runtime: Java interface')
 source=("$pkgbase-$pkgver.tar.gz::https://github.com/opencv/opencv/archive/$pkgver.zip"
-        "opencv_contrib-$pkgver.tar.gz::https://github.com/opencv/opencv_contrib/archive/$pkgver.tar.gz")
-sha256sums=('e59412c7e0d398113b1e454d600fcdff54cd77100a84483ac0d82bbf52496932'
-            '6f3ce148dc6e147496f0dbec1c99e917e13bf138f5a8ccfc3765f5c2372bd331')
+        "opencv_contrib-$pkgver.tar.gz::https://github.com/opencv/opencv_contrib/archive/$pkgver.tar.gz"
+        opencv-includedir.patch
+        0001-link-with-libatomic.patch)
+sha256sums=('d34985c7b4283519c032e3585b30846644f56c81acba35693295ff8930f080aa'
+            '9f85d380758498d800fec26307e389620cde8b1a2e86ab51cddc5200fbe37102'
+            'a96e35c9592e655b21a62cfe04e864a10e21535ad900e5de67356b9e9f40ca10'
+            '3376bc87ac7404c6f396f1bee03b76ab0e5cb18829f535bbc97cef71d28ab168')
 
-_cmakeopts=('-D WITH_OPENCL=ON'
-            '-D WITH_OPENGL=ON'
-            '-D WITH_TBB=ON'
-            '-D WITH_XINE=ON'
-            '-D WITH_GSTREAMER=OFF'
-            '-D BUILD_WITH_DEBUG_INFO=OFF'
-            '-D BUILD_TESTS=OFF'
-            '-D BUILD_PERF_TESTS=OFF'
-            '-D BUILD_EXAMPLES=ON'
-            '-D INSTALL_C_EXAMPLES=ON'
-            '-D INSTALL_PYTHON_EXAMPLES=ON'
-            '-D CMAKE_BUILD_TYPE=Release'
-            '-D CMAKE_INSTALL_PREFIX=/usr'
-            '-D CMAKE_SKIP_RPATH=ON'
-            #'-D WITH_IPP=ON'
-            #'-D INSTALL_CREATE_DISTRIB=ON'
-            )
-
-# SSE only available from Pentium 3 onwards (i686 is way older)
-[[ "$CARCH" = 'i686' ]] && _cmakeopts+=('-D CPU_BASELINE_DISABLE=SSE2')
-[[ "$CARCH" = 'x86_64' ]] && _cmakeopts+=('-D CPU_BASELINE_DISABLE=SSE3 -D CPU_BASELINE_REQUIRE=SSE2')
-
-build() {
+prepare() {
   mkdir -p build
 
-  cd build
-  cmake ${_cmakeopts[@]} \
-    -DOPENCV_EXTRA_MODULES_PATH="$srcdir/opencv_contrib-$pkgver/modules" \
-    ../$pkgname-$pkgver
+  cd $pkgname-$pkgver
+  patch -p1 -i ../opencv-includedir.patch # Fix wrong include patch in pkgconfig file
 
+  if [[ $CARCH == "arm" || $CARCH == "armv6h" ]]; then
+    patch -p1 -i ../0001-link-with-libatomic.patch
+  fi
+}
+
+build() {
+  cd build
+  export JAVA_HOME="/usr/lib/jvm/default"
+  # cmake's FindLAPACK doesn't add cblas to LAPACK_LIBRARIES, so we need to specify them manually
+  _pythonpath=`python -c "from sysconfig import get_path; print(get_path('platlib'))"`
+  cmake ../$pkgname-$pkgver \
+    -DWITH_OPENCL=ON \
+    -DWITH_OPENGL=ON \
+    -DWITH_TBB=ON \
+    -DOpenGL_GL_PREFERENCE=GLVND \
+    -DBUILD_WITH_DEBUG_INFO=OFF \
+    -DBUILD_TESTS=OFF \
+    -DBUILD_PERF_TESTS=OFF \
+    -DBUILD_EXAMPLES=ON \
+    -DINSTALL_C_EXAMPLES=ON \
+    -DINSTALL_PYTHON_EXAMPLES=ON \
+    -DCMAKE_INSTALL_PREFIX=/usr \
+    -DCMAKE_INSTALL_LIBDIR=lib \
+    -DOPENCV_EXTRA_MODULES_PATH="$srcdir/opencv_contrib-$pkgver/modules" \
+    -DOPENCV_SKIP_PYTHON_LOADER=ON \
+    -DOPENCV_PYTHON3_INSTALL_PATH=$_pythonpath \
+    -DLAPACK_LIBRARIES="/usr/lib/liblapack.so;/usr/lib/libblas.so;/usr/lib/libcblas.so" \
+    -DLAPACK_CBLAS_H="/usr/include/cblas.h" \
+    -DLAPACK_LAPACKE_H="/usr/include/lapacke.h" \
+    -DOPENCV_GENERATE_PKGCONFIG=ON \
+    -DOPENCV_ENABLE_NONFREE=ON \
+    -DOPENCV_JNI_INSTALL_PATH=lib \
+    -DOPENCV_GENERATE_SETUPVARS=OFF
   make
 }
 
 package_opencv() {
-  options=('staticlibs')
-
   cd build
-
   make DESTDIR="$pkgdir" install
 
   # install license file
-  install -Dm644 "$srcdir/$pkgname-$pkgver/LICENSE" \
-    "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+  install -Dm644 "$srcdir"/$pkgname-$pkgver/LICENSE -t "$pkgdir"/usr/share/licenses/$pkgname
 
-  cd "$pkgdir/usr/share"
-
-  # separate samples package; also be -R friendly
-  if [[ -d OpenCV/samples ]]; then
-    mv OpenCV/samples "$srcdir/$pkgname-samples"
-    mv OpenCV $pkgname # otherwise folder naming is inconsistent
-  elif [[ ! -d OpenCV ]]; then
-    warning "Directory naming issue; samples package may not be built!"
-  fi
+  # separate samples package
+  cd "$pkgdir"/usr/share
+  mv opencv4/samples "$srcdir"/$pkgname-samples
 }
 
 package_opencv-samples() {
   pkgdesc+=" (samples)"
-  depends=("opencv=$pkgver") # sample codes change with lib/API
+  depends=("opencv=$pkgver")
   unset optdepends
 
-  mkdir -p "$pkgdir/usr/share/opencv"
-  cp -r "$srcdir/opencv-samples" "$pkgdir/usr/share/opencv/samples"
+  mkdir -p "$pkgdir"/usr/share/opencv
+  cp -r "$srcdir"/opencv-samples "$pkgdir"/usr/share/opencv/samples
   # fix permissions
   chmod 755 "$pkgdir"/usr/share/opencv/samples/*
 
   # install license file
-  install -Dm644 "$srcdir/opencv-$pkgver/LICENSE" \
-    "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+  install -Dm644 "$srcdir"/opencv-$pkgver/LICENSE -t "$pkgdir"/usr/share/licenses/$pkgname
 }
-
-# vim:set ts=2 sw=2 et:

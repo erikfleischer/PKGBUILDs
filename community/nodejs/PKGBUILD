@@ -1,4 +1,3 @@
-# $Id$
 # Maintainer: Felix Yan <felixonmars@archlinux.org>
 # Contributor  Bartłomiej Piotrowski <bpiotrowski@archlinux.org>
 # Contributor: Thomas Dziedzic < gostrc at gmail >
@@ -10,21 +9,24 @@
 
 # ALARM: Kevin Mihelich <kevin@archlinuxarm.org>
 #  - set config and gyp flags
+#  - patch to link libatomic for v6
 
 buildarch=28
 
 pkgname=nodejs
-pkgver=9.2.0
+pkgver=12.10.0
 pkgrel=1
 pkgdesc='Evented I/O for V8 javascript'
 arch=('x86_64')
-url='http://nodejs.org/'
+url='https://nodejs.org/'
 license=('MIT')
-depends=('openssl-1.0' 'zlib' 'icu' 'libuv' 'http-parser' 'c-ares') # 'v8')
+depends=('openssl' 'zlib' 'icu' 'libuv' 'c-ares' 'libnghttp2') # 'http-parser' 'v8')
 makedepends=('python2' 'procps-ng')
 optdepends=('npm: nodejs package manager')
-source=("nodejs-$pkgver.tar.gz::https://github.com/nodejs/node/archive/v$pkgver.tar.gz")
-sha512sums=('4f9fc98bcc9e4c0e74876ff2a2983412665d4896623fba685df590fcd4d7158068823b29fc1945852554a05ce449de4d39f1877e6b609d4c91e0a567792fc83b')
+source=("nodejs-$pkgver.tar.gz::https://github.com/nodejs/node/archive/v$pkgver.tar.gz"
+        'atomic.patch')
+sha512sums=('dcca3776f6794523313de5770c6a696b6354b567b960053e400ed5f7c3313d16720f4ef23e783c10b38a641346fdcc80a560d3434805b75f732559f9a00da5b3'
+            'a547a4c9db4ab7609d759bf1d0f1c1809389ce3d3288234470e427438db71551e246791eafab5456f57682989c360d0c78407003ceb1f2f073613ab8c37646d3')
 
 prepare() {
   cd node-$pkgver
@@ -38,12 +40,15 @@ prepare() {
     -e 's_^\(.*\)python\( \+-c \+.*\)$_\1python2\2_'\
     -e "s_'python'_'python2'_" -i {} \;
   find test/ -type f -exec sed 's_python _python2 _' -i {} \;
+
+  if [[ $CARCH == "armv6h" ]]; then
+    patch -p0 -i ../atomic.patch
+  fi
 }
 
 build() {
   cd node-$pkgver
 
-  export PKG_CONFIG_PATH=/usr/lib/openssl-1.0/pkgconfig
   export PYTHON=python2
 
   [[ "$CARCH" == "armv6h" ]] && export CONFIG="--with-arm-float-abi=hard --with-arm-fpu=vfp" && export GYPFLAGS="-Darm_thumb -Darm_float_abi=hard -Darm_version=6 -Darm_fpu=vfpv2"
@@ -56,10 +61,12 @@ build() {
     --shared-openssl \
     --shared-zlib \
     --shared-libuv \
-    --shared-http-parser \
+    --experimental-http-parser \
     --shared-cares \
+    --shared-nghttp2 \
     ${CONFIG}
     # --shared-v8
+    # --shared-http-parser
 
   make
 }

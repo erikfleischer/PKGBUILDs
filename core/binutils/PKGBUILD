@@ -1,35 +1,29 @@
-# $Id$
-# Maintainer: Allan McRae <allan@archlinux.org>
+# Maintainer:  Bartłomiej Piotrowski <bpiotrowski@archlinux.org>
+# Contributor: Allan McRae <allan@archlinux.org>
 
 # toolchain build order: linux-api-headers->glibc->binutils->gcc->binutils->glibc
 
 # ALARM: Kevin Mihelich <kevin@archlinuxarm.org>
-# - Added a CONFIGFLAG for ARM, defining our build hosts
-# - --disable-sim, files provided by gdb
-# - Disabled make check, too processor/ram intensive, blows up
+#  - Added a CONFIGFLAG for ARM, defining our build hosts
+#  - --disable-sim, files provided by gdb
 
 noautobuild=1
 
 pkgname=binutils
-pkgver=2.29.1
-pkgrel=1
+pkgver=2.32
+pkgrel=2
 pkgdesc='A set of programs to assemble and manipulate binary and object files'
-arch=(i686 x86_64)
-url='http://www.gnu.org/software/binutils/'
+arch=(x86_64)
+url='https://www.gnu.org/software/binutils/'
 license=(GPL)
-groups=('base-devel')
-depends=('glibc>=2.26' zlib)
-makedepends=(git)
+groups=(base-devel)
+depends=(glibc zlib)
 checkdepends=(dejagnu bc)
 options=(staticlibs !distcc !ccache)
-#_commit=d1a6e7195b9bb0255fa77588985b969ad8aaacf5
-#source=(git+https://sourceware.org/git/binutils-gdb.git#commit=${_commit}
-source=(https://ftp.gnu.org/gnu/binutils/binutils-$pkgver.tar.xz{,.sig}
-        0001-x86-64_Dont_pass_output_bfd_to_info-callbacks-minfo.patch)
+source=(https://ftp.gnu.org/gnu/binutils/binutils-$pkgver.tar.xz{,.sig})
 validpgpkeys=(3A24BC1E8FB409FA9F14371813FCEF89DD9E3C4F)
-md5sums=('acc9cd826edb9954ac7cecb81c727793'
-         'SKIP'
-         'e4be936139ef46122cb3841881c432b2')
+md5sums=('0d174cdaf85721c5723bf52355be41e6'
+         'SKIP')
 
 prepare() {
   mkdir -p binutils-build
@@ -39,9 +33,6 @@ prepare() {
 
   # hack! - libiberty configure tests for header files using "$CPP $CPPFLAGS"
   sed -i "/ac_cpp=/s/\$CPPFLAGS/\$CPPFLAGS -O2/" libiberty/configure
-
-  # https://bugs.archlinux.org/task/55741
-  git apply ../0001-x86-64_Dont_pass_output_bfd_to_info-callbacks-minfo.patch
 }
 
 build() {
@@ -57,16 +48,17 @@ build() {
     --prefix=/usr \
     --with-lib-path=/usr/lib:/usr/local/lib \
     --with-bugurl=https://github.com/archlinuxarm/PKGBUILDs/issues \
-    --enable-threads \
-    --enable-shared \
-    --enable-ld=default \
+    --enable-deterministic-archives \
     --enable-gold \
+    --enable-ld=default \
+    --enable-lto \
     --enable-plugins \
     --enable-relro \
-    --enable-deterministic-archives \
-    --with-pic \
-    --disable-werror \
+    --enable-shared \
+    --enable-threads \
     --disable-gdb \
+    --disable-werror \
+    --with-pic \
     --with-system-zlib \
     --disable-sim \
     $CONFIGFLAG
@@ -77,7 +69,7 @@ build() {
 
 check() {
   cd binutils-build
-  
+
   # unset LDFLAGS as testsuite makes assumptions about which ones are active
   # ignore failures in gold testsuite...
   make -k LDFLAGS="" check || true
@@ -92,6 +84,6 @@ package() {
 
   # No shared linking to these files outside binutils
   rm -f "$pkgdir"/usr/lib/lib{bfd,opcodes}.so
-  echo "INPUT( /usr/lib/libbfd.a -liberty -lz -ldl )" > "$pkgdir/usr/lib/libbfd.so"
-  echo "INPUT( /usr/lib/libopcodes.a -lbfd )" > "$pkgdir/usr/lib/libopcodes.so"
+  echo 'INPUT( /usr/lib/libbfd.a -liberty -lz -ldl )' > "$pkgdir/usr/lib/libbfd.so"
+  echo 'INPUT( /usr/lib/libopcodes.a -lbfd )' > "$pkgdir/usr/lib/libopcodes.so"
 }

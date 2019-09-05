@@ -6,9 +6,9 @@ buildarch=8
 pkgbase=linux-gru
 _kernelname=${pkgbase#linux}
 _desc="Gru Chromebooks"
-pkgver=4.4.92
+pkgver=4.4.185
 pkgrel=1
-_commit=96e56ffa00a57f0990f7d0dbf9161668fa11f620
+_commit=b1c4422f1d776fd5c8eccb99d4b3cbf0b4b79ab2
 arch=('aarch64')
 url="https://chromium.googlesource.com/chromiumos/third_party/kernel/+/chromeos-4.4"
 license=('GPL2')
@@ -22,12 +22,12 @@ source=("https://chromium.googlesource.com/chromiumos/third_party/kernel/+archiv
         'kernel.its'
         'kernel.keyblock'
         'kernel_data_key.vbprivk')
-md5sums=('60c3f22600dde69ac57e4a887a117f1a'
+md5sums=('343eb80e0fe297643be11dc9cc032fcc'
          'd3b3d9d59f91cc6fad24c29873ad87bc'
          '66cd7c64f8861025fa8e394675222aa1'
          '8f416793377fc69914851a32fe6ca33e'
-         '647f38a39979cdb1e599aba477cc4a1c'
-         '25dea537b93937f77b92cde7adffcb55'
+         'a073a2e2a1db74e6ae220db3c38d7ca2'
+         '721dc956ac392901d3d4357132aa70d4'
          '61c5ff73c136ed07a7aadbf58db3d96a'
          '584777ae88bce2c5659960151b64c7d8')
 
@@ -96,7 +96,7 @@ _package() {
   
   mkimage -D "-I dts -O dtb -p 2048" -f kernel.its vmlinux.uimg
   dd if=/dev/zero of=bootloader.bin bs=512 count=1
-  echo "console=tty1 console=ttyS2,115200n8 earlyprintk=ttyS2,115200n8 init=/sbin/init root=PARTUUID=%U/PARTNROFF=1 rootwait rw noinitrd" > cmdline
+  echo "console=ttyS2,115200n8 earlyprintk=ttyS2,115200n8 console=tty1 init=/sbin/init root=PARTUUID=%U/PARTNROFF=1 rootwait rw noinitrd loglevel=4" > cmdline
   vbutil_kernel \
     --pack vmlinux.kpart \
     --version 1 \
@@ -244,7 +244,7 @@ _package-headers() {
   done
 
   # remove unneeded architectures
-  rm -rf "${pkgdir}"/usr/lib/modules/${_kernver}/build/arch/{alpha,arc,arm,arm26,avr32,blackfin,c6x,cris,frv,h8300,hexagon,ia64,m32r,m68k,m68knommu,metag,mips,microblaze,mn10300,openrisc,parisc,powerpc,ppc,s390,score,sh,sh64,sparc,sparc64,tile,unicore32,um,v850,x86,xtensa}
+  rm -rf "${pkgdir}"/usr/lib/modules/${_kernver}/build/arch/{alpha,arc,arm26,avr32,blackfin,c6x,cris,frv,h8300,hexagon,ia64,m32r,m68k,m68knommu,metag,mips,microblaze,mn10300,openrisc,parisc,powerpc,ppc,s390,score,sh,sh64,sparc,sparc64,tile,unicore32,um,v850,x86,xtensa}
 }
 
 pkgname=("${pkgbase}" "${pkgbase}-headers")

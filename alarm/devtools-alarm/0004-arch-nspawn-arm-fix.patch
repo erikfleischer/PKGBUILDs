@@ -1,43 +1,39 @@
-From 986d267949d8111f04954c0e56ab51251fa6b418 Mon Sep 17 00:00:00 2001
+From bc7c660f7598efb4de58c859f69aebecef6c7fd1 Mon Sep 17 00:00:00 2001
 From: Kevin Mihelich <kevin@archlinuxarm.org>
 Date: Sun, 28 Dec 2014 22:33:00 -0700
 Subject: [PATCH 4/7] arch-nspawn: arm fix
 
 ---
  arch-nspawn.in   | 2 +-
- makechrootpkg.in | 4 ++--
- 2 files changed, 3 insertions(+), 3 deletions(-)
+ makechrootpkg.in | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
 
 diff --git a/arch-nspawn.in b/arch-nspawn.in
-index 081c708..c80afba 100644
+index a371625..70944c8 100644
 --- a/arch-nspawn.in
 +++ b/arch-nspawn.in
-@@ -96,7 +96,7 @@ copy_hostconf
+@@ -114,7 +114,7 @@ eval "$(grep -a '^CARCH=' "$working_dir/etc/makepkg.conf")"
  
- eval $(grep '^CARCH=' "$working_dir/etc/makepkg.conf")
+ [[ -z $nosetarch ]] || unset CARCH
  
 -exec ${CARCH:+setarch "$CARCH"} systemd-nspawn -q \
 +exec systemd-nspawn -q \
  	-D "$working_dir" \
- 	--register=no \
- 	"${mount_args[@]}" \
+ 	-E "PATH=/usr/local/sbin:/usr/local/bin:/usr/bin" \
+ 	--register=no --keep-unit --as-pid2 \
 diff --git a/makechrootpkg.in b/makechrootpkg.in
-index 4b86084..39dc498 100644
+index 94e69ae..8322ee4 100644
 --- a/makechrootpkg.in
 +++ b/makechrootpkg.in
-@@ -223,10 +223,10 @@ download_sources() {
+@@ -259,7 +259,7 @@ download_sources() {
  	# Ensure sources are downloaded
- 	if [[ -n $SUDO_USER ]]; then
- 		sudo -u $SUDO_USER env SRCDEST="$SRCDEST" BUILDDIR="$builddir" \
--			makepkg --config="$copydir/etc/makepkg.conf" --verifysource -o
-+			makepkg -A --config="$copydir/etc/makepkg.conf" --verifysource -o
- 	else
- 		( export SRCDEST BUILDDIR="$builddir"
--			makepkg --asroot --config="$copydir/etc/makepkg.conf" --verifysource -o
-+			makepkg -A --config="$copydir/etc/makepkg.conf" --verifysource -o
- 		)
- 	fi
- 	(( $? != 0 )) && die "Could not download sources."
+ 	sudo -u "$makepkg_user" --preserve-env=GNUPGHOME \
+ 		env SRCDEST="$SRCDEST" BUILDDIR="$WORKDIR" \
+-		makepkg --config="$copydir/etc/makepkg.conf" --verifysource -o ||
++		makepkg -A --config="$copydir/etc/makepkg.conf" --verifysource -o ||
+ 		die "Could not download sources."
+ }
+ 
 -- 
-2.9.0
+2.21.0
 

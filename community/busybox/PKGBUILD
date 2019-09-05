@@ -1,36 +1,40 @@
-# $Id$
 # Maintainer: Sergej Pupykin <pupykin.s+arch@gmail.com>
+# Maintainer: Eli Schwartz <eschwartz@archlinux.org>
 # Contributor: Jens Pranaitis <jens@jenux.homelinux.org>
 
 # ALARM: Kevin Mihelich <kevin@archlinuxarm.org>
 #  - don't build with musl-gcc
 
 pkgname=busybox
-pkgver=1.27.2
-pkgrel=1
+pkgver=1.30.1
+pkgrel=4
 pkgdesc="Utilities for rescue and embedded systems"
-arch=("i686" "x86_64")
+arch=("x86_64")
 url="https://www.busybox.net"
 license=('GPL')
-makedepends=("make" "gcc" "sed" "ncurses")
-install=busybox.install
-source=("$url/downloads/$pkgname-$pkgver.tar.bz2"
-	"config")
-sha256sums=('9d4be516b61e6480f156b11eb42577a13529f75d3383850bb75c50c285de63df'
-            'ecc280befe45bd5892dbdc3cd4204ca7b564710d209630df3121a68ce851a0cb')
+makedepends=("ncurses")
+validpgpkeys=('C9E9416F76E610DBD09D040F47B70C55ACC9965B')
+source=("$url/downloads/$pkgname-$pkgver.tar.bz2"{,.sig}
+        "config")
+sha256sums=('3d1d04a4dbd34048f4794815a5c48ebb9eb53c5277e09ffffc060323b95dfbdc'
+            'SKIP'
+            'e1deb1d6980cbe2e29663667b6b455af31b303499d049e07a88b6d2d52b8625f')
 
 build() {
   cd "$srcdir/$pkgname-$pkgver"
+
   cp "$srcdir"/config .config
-  sed '1,1i#include <sys/resource.h>' -i include/libbb.h
-  # if you want to run menuconfig uncomment the following line:
-#  make menuconfig ; return 1
+  # reproducible build
+  export KCONFIG_NOTIMESTAMP=1
   make
 }
 
 package() {
   cd "$srcdir/$pkgname-$pkgver"
-  install -Dm755 busybox "$pkgdir"/usr/bin/busybox
+
+  install -Dm0755 busybox "$pkgdir"/usr/bin/busybox
+
+  # docs
   install -Dm644 docs/busybox.1 "$pkgdir"/usr/share/man/man1/busybox.1
   for doc in BusyBox.html BusyBox.txt; do
     install -Dm644 docs/$doc "$pkgdir"/usr/share/doc/$pkgname/$doc

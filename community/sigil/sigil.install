@@ -1,12 +1,10 @@
-post_install() {
-  update-desktop-database -q
-  xdg-icon-resource forceupdate --theme hicolor &> /dev/null
-}
-
 post_upgrade() {
-  post_install
-}
-
-post_remove() {
-  post_install
+    if (( $(vercmp 0.9.13 "$2") > 0 )); then
+        cat << __EOF__
+Sigil will very possibly not work at first due to bugs in the 0.9.11 - 0.9.12 preferences code.
+Please see the following resources for migration instructions:
+  https://www.mobileread.com/forums/showthread.php?t=315748
+  https://github.com/Sigil-Ebook/Sigil/wiki#if-youre-here-because
+__EOF__
+    fi
 }

@@ -6,21 +6,21 @@
 #  - only use valgrind with v7/v8
 
 pkgname=openmpi
-pkgver=2.1.1
-pkgrel=2
+pkgver=4.0.1
+pkgrel=1
 pkgdesc='High performance message passing library (MPI)'
 url='https://www.open-mpi.org'
-arch=('i686' 'x86_64')
+arch=('x86_64')
 license=('custom:OpenMPI')
-depends=('libltdl' 'hwloc' 'openssh')
+depends=('libltdl' 'hwloc' 'openssh' 'zlib' 'libnl')
 makedepends=('inetutils' 'gcc-fortran')
 makedepends_armv7h=('valgrind')
 makedepends_aarch64=('valgrind')
 optdepends=('gcc-fortran: fortran support')
 options=('staticlibs')
 source=(https://www.open-mpi.org/software/ompi/v${pkgver%.*}/downloads/${pkgname}-${pkgver}.tar.bz2)
-sha256sums=('bd7badd4ff3afa448c0d7f3ca0ee6ce003b957e9954aa87d8e4435759b5e4d16')
-sha512sums=('c11bba6ec815f9c8d32fce3578f8995f6cd694e02fb850d7e6cd3975989bb38fdbef348064264a1de418d0a21411c70ca74347ecff4f27eb5a2f6835019d6bca')
+sha256sums=('cce7b6d20522849301727f81282201d609553103ac0b09162cf28d102efb9709')
+sha512sums=('09f35dc2e44b4f84aab9c5af9d81f90bbdb030e4d90800a5d3ffae88cb32b7faecc9bea0abb113da53c21f73e9d19db68f961f997bc47bdd28d83a87beee0731')
 
 build() {
   cd ${pkgname}-${pkgver}

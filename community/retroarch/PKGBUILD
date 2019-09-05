@@ -1,58 +1,87 @@
-# $Id$
 # Maintainer: Maxime Gauduin <alucryd@archlinux.org>
 # Contributor: Themaister <maister@archlinux.us>
 # Contributor: lifning <definelightning@gmail.com>
 
 # ALARM: Kevin Mihelich <kevin@archlinuxarm.org>
 #  - enable GLES
+#  - disable broken pkgver function
 
 pkgname=retroarch
-pkgver=1.6.7
+pkgver=1.7.8
 pkgrel=2
 pkgdesc='Reference frontend for the libretro API'
-arch=('i686' 'x86_64')
-url='http://www.libretro.com/'
-license=('GPL')
-groups=('libretro')
-depends=('alsa-lib' 'gcc-libs' 'glibc' 'libdrm' 'libgl' 'libpulse' 'libusb'
-         'libx11' 'libxcb' 'libxext' 'libxinerama' 'libxkbcommon' 'libxv'
-         'libxxf86vm' 'mesa' 'openal' 'sdl2' 'wayland' 'zlib'
-         'libass.so' 'libavcodec.so' 'libavformat.so' 'libavutil.so'
-         'libfreetype.so' 'libswresample.so' 'libswscale.so' 'libudev.so')
-makedepends=('vulkan-icd-loader')
-optdepends=('libretro-beetle-psx: Sony PlayStation core'
-            'libretro-beetle-psx-hw: Sony PlayStation core'
-            'libretro-blastem: Sega Mega Drive core'
-            'libretro-bsnes: Super Nintendo Entertainment System cores'
-            'libretro-desmume: Nintendo DS core'
-            'libretro-gambatte: Nintendo Game Boy/Game Boy Color core'
-            'libretro-genesis-plus-gx: Sega MS/GG/MD/CD core'
-            'libretro-mgba: Nintendo Game Boy Advance core'
-            'libretro-mupen64plus: Nintendo 64 core'
-            'libretro-nestopia: Nintendo Entertainment System core'
-            'libretro-reicast: Sega Dreamcast core'
-            'libretro-scummvm: ScummVM core'
-            'libretro-snes9x: Super Nintendo Entertainment System core'
-            'libretro-yabause: Sega Saturn core'
-            'libretro-overlays: Collection of overlays'
-            'libretro-shaders: Collection of shaders'
-            'python: retroarch-cg2glsl'
-            'retroarch-assets-xmb: XMB menu assets'
-            'retroarch-autoconfig-udev: udev joypad autoconfig')
-backup=('etc/retroarch.cfg')
-source=("retroarch-${pkgver}.tar.gz::https://github.com/libretro/RetroArch/archive/v${pkgver}.tar.gz"
-        'retroarch-config.patch')
-sha256sums=('212f281d3febde1df27d2edd5de3ced5be86c816b3f13614754495e4a62e778f'
-            'f37b12754256b0bcc2f9d738f9aa1c18557fffede670a328eb0eeb2f28a32bbd')
+arch=(x86_64)
+url=http://www.libretro.com/
+license=(GPL)
+groups=(libretro)
+depends=(
+  alsa-lib
+  libass.so
+  libavcodec.so
+  libavformat.so
+  libavutil.so
+  libdrm
+  libfreetype.so
+  libgl
+  libpulse
+  libswresample.so
+  libswscale.so
+  libudev.so
+  libusb-1.0.so
+  mesa
+  openal
+  qt5-base
+  sdl2
+  v4l-utils
+  zlib
+)
+makedepends=(
+  git
+  libx11
+  libxcb
+  libxext
+  libxinerama
+  libxkbcommon
+  libxrandr
+  libxv
+  libxxf86vm
+  vulkan-icd-loader
+  wayland
+  wayland-protocols
+)
+optdepends=(
+  'libretro-overlays: Collection of overlays'
+  'libretro-shaders: Collection of shaders'
+  'libxinerama: X11 support'
+  'libxrandr: X11 support'
+  'python: retroarch-cg2glsl'
+  'retroarch-assets-xmb: XMB menu assets'
+  'wayland: Wayland support'
+)
+backup=(etc/retroarch.cfg)
+source=(
+  git+https://github.com/libretro/RetroArch.git#tag=37515372787c3fbd295a25e8a89b85383faab2b6
+  retroarch-config.patch
+)
+sha256sums=(
+  SKIP
+  7857cff30c45721b66666828ca9edbb2923817c6c64591be3f58fe019277103e
+)
+
+#pkgver() {
+#  cd RetroArch
+#
+#  git describe --tags | sed 's/^v//'
+#}
 
 prepare() {
-  cd RetroArch-${pkgver}
+  cd RetroArch
 
   patch -Np1 -i ../retroarch-config.patch
 }
 
 build() {
-  cd RetroArch-${pkgver}
+  cd RetroArch
 
   ./configure \
     --prefix='/usr' \
@@ -67,13 +96,12 @@ build() {
 }
 
 package() {
-  cd RetroArch-${pkgver}
+  cd RetroArch
 
   make DESTDIR="${pkgdir}" install
 
-  install -dm 755 "${pkgdir}"/usr/lib/retroarch/filters/{audio,video}
-  install -m 644 libretro-common/audio/dsp_filters/*.so "${pkgdir}"/usr/lib/retroarch/filters/audio/
-  install -m 644 gfx/video_filters/*.{filt,so} "${pkgdir}"/usr/lib/retroarch/filters/video/
+  install -Dm 644 libretro-common/audio/dsp_filters/*.{dsp,so} -t "${pkgdir}"/usr/lib/retroarch/filters/audio/
+  install -Dm 644 gfx/video_filters/*.{filt,so} -t "${pkgdir}"/usr/lib/retroarch/filters/video/
 }
 
 # vim: ts=2 sw=2 et:

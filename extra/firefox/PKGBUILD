@@ -1,44 +1,45 @@
-# $Id$
 # Maintainer: Jan Alexander Steffens (heftig) <jan.steffens@gmail.com>
 # Contributor: Ionut Biru <ibiru@archlinux.org>
 # Contributor: Jakub Schmidtke <sjakub@gmail.com>
 
 # ALARM: Kevin Mihelich <kevin@archlinuxarm.org>
 #  - mozconfig changes for ARM
-#  - use tarball source
+#  - revert change for clang that breaks gcc build on ARM
 
 buildarch=12
 highmem=1
 
 pkgname=firefox
-pkgver=57.0
-pkgrel=2
+pkgver=69.0
+pkgrel=1
 pkgdesc="Standalone web browser from mozilla.org"
 arch=(x86_64)
 license=(MPL GPL LGPL)
 url="https://www.mozilla.org/firefox/"
-depends=(gtk3 gtk2 mozilla-common libxt startup-notification mime-types dbus-glib ffmpeg
-         nss hunspell sqlite ttf-font libpulse)
-makedepends=(unzip zip diffutils python2 yasm mesa imake gconf inetutils xorg-server-xvfb
-             autoconf2.13 rust mercurial clang llvm jack)
+depends=(gtk3 mozilla-common libxt startup-notification mime-types dbus-glib
+         ffmpeg nss ttf-font libpulse)
+makedepends=(unzip zip diffutils python2-setuptools yasm mesa imake inetutils
+             xorg-server-xvfb autoconf2.13 rust clang llvm jack gtk2
+             python nodejs python2-psutil cbindgen nasm distcc-clang)
 optdepends=('networkmanager: Location detection via available WiFi networks'
             'libnotify: Notification integration'
             'pulseaudio: Audio support'
-            'speech-dispatcher: Text-to-Speech')
+            'speech-dispatcher: Text-to-Speech'
+            'hunspell-en_US: Spell checking, American English')
 options=(!emptydirs !makeflags !strip)
-source=(https://ftp.mozilla.org/pub/mozilla.org/firefox/releases/$pkgver/source/firefox-$pkgver.source.tar.xz
-        $pkgname.desktop firefox-symbolic.svg
-        0001-Bug-1360278-Add-preference-to-trigger-context-menu-o.patch
-        wifi-disentangle.patch wifi-fix-interface.patch
-        firefox-install-dir.patch no-plt.diff)
-sha256sums=('603af00155be87f2c9c58047dd0072971f1cdab1f632695aae6ad072efefbb8f'
-            '677e1bde4c6b3cff114345c211805c7c43085038ca0505718a11e96432e9811a'
-            'a2474b32b9b2d7e0fb53a4c89715507ad1c194bef77713d798fa39d507def9e9'
-            '1f71b379f2262d7319624c2aed31fa2dbed42828feccc27b1cd82153b76ad707'
-            'f068b84ad31556095145d8fefc012dd3d1458948533ed3fff6cbc7250b6e73ed'
-            'e98a3453d803cc7ddcb81a7dc83f883230dd8591bdf936fc5a868428979ed1f1'
-            'd86e41d87363656ee62e12543e2f5181aadcff448e406ef3218e91865ae775cd'
-            'ea8e1b871c0f1dd29cdea1b1a2e7f47bf4713e2ae7b947ec832dba7dfcc67daa')
+source=(https://archive.mozilla.org/pub/firefox/releases/$pkgver/source/firefox-$pkgver.source.tar.xz{,.asc}
+        arm.patch
+        build-arm-libopus.patch
+        0001-Use-remoting-name-for-GDK-application-names.patch
+        $pkgname.desktop firefox-symbolic.svg)
+sha256sums=('413c3febdfeb69eade818824eecbdb11eaeda71de229573810afd641ba741ec5'
+            'SKIP'
+            'bc00516032330760444939c516a60c78f868631e1b37f075f0fe71a53737b966'
+            '2d4d91f7e35d0860225084e37ec320ca6cae669f6c9c8fe7735cdbd542e3a7c9'
+            'ab07ab26617ff76fce68e07c66b8aa9b96c2d3e5b5517e51a3c3eac2edd88894'
+            'a9e5264257041c0b968425b5c97436ba48e8d294e1a0f02c59c35461ea245c33'
+            '9a1a572dc88014882d54ba2d3079a1cf5b28fa03c5976ed2cb763c93dabbd797')
+validpgpkeys=('14F26682D0916CDD81E37B6D61B7B526D98F0353') # Mozilla Software Releases <release@mozilla.com>
 
 # Google API keys (see http://www.chromium.org/developers/how-tos/api-keys)
 # Note: These are for Arch Linux use ONLY. For your own distribution, please
@@ -54,21 +55,11 @@ _google_api_key=AIzaSyDwr302FpOSkGRpLlUpPThNTDPbXcIn_FM
 _mozilla_api_key=16674381-f021-49de-8622-3021c5942aff
 
 prepare() {
-  mkdir path
-  ln -s /usr/bin/python2 path/python
+  mkdir mozbuild
+  cd firefox-$pkgver
 
-  cd $pkgname-$pkgver
-  patch -Np1 -i ../firefox-install-dir.patch
-
-  # https://bugzilla.mozilla.org/show_bug.cgi?id=1360278
-  patch -Np1 -i ../0001-Bug-1360278-Add-preference-to-trigger-context-menu-o.patch
-
-  # https://bugzilla.mozilla.org/show_bug.cgi?id=1314968
-  patch -Np1 -i ../wifi-disentangle.patch
-  patch -Np1 -i ../wifi-fix-interface.patch
-
-  # https://bugzilla.mozilla.org/show_bug.cgi?id=1382942
-  patch -Np1 -i ../no-plt.diff
+  # https://bugzilla.mozilla.org/show_bug.cgi?id=1530052
+  patch -Np1 -i ../0001-Use-remoting-name-for-GDK-application-names.patch
 
   echo -n "$_google_api_key" >google-api-key
   echo -n "$_mozilla_api_key" >mozilla-api-key
@@ -78,75 +69,91 @@ ac_add_options --enable-application=browser
 
 ac_add_options --prefix=/usr
 ac_add_options --enable-release
-#ac_add_options --enable-gold
-#ac_add_options --enable-pie
-ac_add_options --enable-rust-simd
+#ac_add_options --enable-hardening
+ac_add_options --enable-optimize="-O2"
+#ac_add_options --enable-rust-simd
+#ac_add_options --enable-lto
+#export MOZ_PGO=1
+export CC=clang
+export CXX=clang++
+export AR=llvm-ar
+export NM=llvm-nm
+export RANLIB=llvm-ranlib
 
 # Branding
 ac_add_options --enable-official-branding
 ac_add_options --enable-update-channel=release
 ac_add_options --with-distribution-id=org.archlinux
+ac_add_options --with-unsigned-addon-scopes=app,system
 export MOZILLA_OFFICIAL=1
+export MOZ_APP_REMOTINGNAME=${pkgname//-/}
 export MOZ_TELEMETRY_REPORTING=1
-export MOZ_ADDON_SIGNING=1
 export MOZ_REQUIRE_SIGNING=1
 
 # Keys
-ac_add_options --with-google-api-keyfile=${PWD@Q}/google-api-key
+ac_add_options --with-google-location-service-api-keyfile=${PWD@Q}/google-api-key
+ac_add_options --with-google-safebrowsing-api-keyfile=${PWD@Q}/google-api-key
 ac_add_options --with-mozilla-api-keyfile=${PWD@Q}/mozilla-api-key
 
 # ALARM
 ac_add_options --disable-webrtc
 
 # System libraries
-ac_add_options --with-system-zlib
-ac_add_options --with-system-bz2
-ac_add_options --enable-system-hunspell
-ac_add_options --enable-system-sqlite
-ac_add_options --enable-system-ffi
+ac_add_options --with-system-nspr
+ac_add_options --with-system-nss
 
 # Features
 ac_add_options --enable-alsa
 ac_add_options --enable-jack
 ac_add_options --enable-startup-notification
 ac_add_options --disable-crashreporter
+ac_add_options --disable-gconf
 ac_add_options --disable-updater
+ac_add_options --disable-tests
 END
 
   if [[ $CARCH == "armv7h" ]]; then
     echo "ac_add_options --disable-elf-hack" >> .mozconfig
-    echo 'ac_add_options --enable-optimize="-g -O2 -fno-schedule-insns"' >> .mozconfig
-    echo "ac_add_options --disable-stylo" >> .mozconfig
+    # https://bugzilla.redhat.com/show_bug.cgi?id=1641623
+    echo "ac_add_options --disable-av1" >> .mozconfig
+    export RUSTFLAGS="-Cdebuginfo=0"
   elif [[ $CARCH == "aarch64" ]]; then
-    echo 'ac_add_options --enable-optimize="-O2"' >> .mozconfig
+    echo 'ac_add_options --enable-rust-simd' >> .mozconfig
   fi
+
+  LDFLAGS+=" -Wl,--no-keep-memory -Wl,--reduce-memory-overheads"
+  patch -p1 -i ../arm.patch
+  patch -p1 -i ../build-arm-libopus.patch
 }
 
 build() {
-  cd $pkgname-$pkgver
+  cd firefox-$pkgver
 
-  # _FORTIFY_SOURCE causes configure failures
-  CPPFLAGS+=" -O2"
+  export MOZ_NOSPAM=1
+  export MOZBUILD_STATE_PATH="$srcdir/mozbuild"
 
-  export PATH="$srcdir/path:$PATH"
-  export MOZ_SOURCE_REPO="$_repo"
+  # LTO needs more open files
+  ulimit -n 4096
 
-  # Do PGO
-  #xvfb-run -a -n 95 -s "-extension GLX -screen 0 1280x1024x24" \
-  #  MOZ_PGO=1 ./mach build
+  msg2 "Building optimized browser..."
   ./mach build
+
+  msg2 "Building symbol archive..."
   ./mach buildsymbols
 }
 
 package() {
-  cd $pkgname-$pkgver
+  cd firefox-$pkgver
   DESTDIR="$pkgdir" ./mach install
   find . -name '*crashreporter-symbols-full.zip' -exec cp -fvt "$startdir" {} +
 
   _vendorjs="$pkgdir/usr/lib/$pkgname/browser/defaults/preferences/vendor.js"
   install -Dm644 /dev/stdin "$_vendorjs" <<END
 // Use LANG environment variable to choose locale
-pref("intl.locale.matchOS", true);
+pref("intl.locale.requested", "");
+
+// Use system-provided dictionaries
+pref("spellchecker.dictionary_path", "/usr/share/hunspell");
 
 // Disable default browser checking.
 pref("browser.shell.checkDefaultBrowser", false);
@@ -154,9 +161,6 @@ pref("browser.shell.checkDefaultBrowser", false);
 // Don't disable our bundled extensions in the application directory
 pref("extensions.autoDisableScopes", 11);
 pref("extensions.shownSelectionUI", true);
-
-// Opt all of us into e10s, instead of just 50%
-pref("browser.tabs.remote.autostart", true);
 END
 
   _distini="$pkgdir/usr/lib/$pkgname/distribution/distribution.ini"
@@ -172,14 +176,10 @@ app.distributor.channel=$pkgname
 app.partner.archlinux=archlinux
 END
 
-  for i in 16 22 24 32 48 256; do
+  for i in 16 22 24 32 48 64 128 256; do
     install -Dm644 browser/branding/official/default$i.png \
       "$pkgdir/usr/share/icons/hicolor/${i}x${i}/apps/$pkgname.png"
   done
-  install -Dm644 browser/branding/official/content/icon64.png \
-    "$pkgdir/usr/share/icons/hicolor/64x64/apps/$pkgname.png"
-  install -Dm644 browser/branding/official/mozicon128.png \
-    "$pkgdir/usr/share/icons/hicolor/128x128/apps/$pkgname.png"
   install -Dm644 browser/branding/official/content/about-logo.png \
     "$pkgdir/usr/share/icons/hicolor/192x192/apps/$pkgname.png"
   install -Dm644 browser/branding/official/content/about-logo@2x.png \
@@ -189,11 +189,6 @@ END
 
   install -Dm644 ../$pkgname.desktop \
     "$pkgdir/usr/share/applications/$pkgname.desktop"
-
-  # Use system-provided dictionaries
-  rm -r "$pkgdir"/usr/lib/$pkgname/dictionaries
-  ln -Ts /usr/share/hunspell "$pkgdir/usr/lib/$pkgname/dictionaries"
-  ln -Ts /usr/share/hyphen "$pkgdir/usr/lib/$pkgname/hyphenation"
 
   # Install a wrapper to avoid confusion about binary path
   install -Dm755 /dev/stdin "$pkgdir/usr/bin/$pkgname" <<END
@@ -205,8 +200,6 @@ END
   # https://bugzilla.mozilla.org/show_bug.cgi?id=658850
   ln -srf "$pkgdir/usr/bin/$pkgname" \
     "$pkgdir/usr/lib/$pkgname/firefox-bin"
-
-  # Use system certificates
-  ln -srf "$pkgdir/usr/lib/libnssckbi.so" \
-    "$pkgdir/usr/lib/$pkgname/libnssckbi.so"
 }
+
+# vim:set sw=2 et:

@@ -6,25 +6,27 @@
 
 # ALARM: Kevin Mihelich <kevin@archlinuxarm.org>
 #  - explicitly link v5/v6 with libatomic
+#  - remove makedepend on pandoc
 
 pkgname=powerdns-recursor
-pkgver=4.0.6
-pkgrel=3
+pkgver=4.2.0
+pkgrel=1
 pkgdesc='Resolving DNS server'
 url='https://www.powerdns.com/'
-arch=('i686' 'x86_64')
+arch=('x86_64')
 license=('GPL2')
-depends=('gcc-libs' 'boost-libs' 'libsystemd' 'lua' 'openssl' 'protobuf'
+depends=('gcc-libs' 'boost-libs' 'libsodium' 'systemd-libs' 'lua' 'openssl' 'protobuf'
          'libboost_context.so')
-makedepends=('boost' 'inetutils' 'systemd')
+makedepends=('boost' 'inetutils' 'ragel' 'systemd')
 provides=('pdns-recursor')
 conflicts=('pdns-recursor')
 backup=('etc/powerdns/recursor.conf')
 source=(https://downloads.powerdns.com/releases/pdns-recursor-${pkgver}.tar.bz2{,.asc})
-sha512sums=('2203fd96469deded1da677344485da221eec036b1ad9fb418a89cd4477d73f2a6fcf984a39b574561df6946f440ddf1982de20cd39d7204da9c27e74216d1159'
+sha512sums=('e4be63c1be70f0dfd7aab71f1184d5cc1d15e60e775451a96e8472db6fb3825762ebd6f51b593b167389868bbfde0538612b14a04c03f3f60a7e49f7882e78bf'
             'SKIP')
 validpgpkeys=('B76CD4671C0968BAA87DE61C5E50715BF2FFE1A7'  # Pieter Lexis <pieter.lexis@powerdns.com>
-              'FBAE0323821C7706A5CA151BDCF513FA7EED19F3') # Peter van Dijk <peter.van.dijk@powerdns.com>
+              'FBAE0323821C7706A5CA151BDCF513FA7EED19F3'  # Peter van Dijk <peter.van.dijk@powerdns.com>
+              '16E12866B7738C73976A57436FFC33439B0D04DF') # Winkels, Erik <erik.winkels@open-xchange.com>
 
 build() {
   cd pdns-recursor-${pkgver}
@@ -35,7 +37,9 @@ build() {
     --sysconfdir=/etc/powerdns \
     --disable-silent-rules \
     --enable-reproducible \
-    --enable-systemd
+    --enable-systemd \
+    --enable-protobuf \
+    --enable-libsodium
   make
 }
 

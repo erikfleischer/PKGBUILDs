@@ -1,4 +1,3 @@
-# $Id$
 # Maintainer: Alexander Rødseth <rodseth@gmail.com>
 # Maintainer: Felix Yan <felixonmars@archlinux.org>
 # Contributor: T. Jameson Little <t.jameson.little at gmail dot com>
@@ -7,43 +6,42 @@
 # Contributor: Julien Nicoulaud <julien.nicoulaud@gmail.com>
 # Contributor: Jacob Bang <julemand101gmail.com>
 
-# Arch Linux ARM changes:
-# - added source and sha512 for ARMv7h build of Dart
+# ALARM: Kevin Mihelich <kevin@archlinuxarm.org>
+#  - added source and sha512 for ARMv7h, AArch64 builds of Dart
+#  - configure paths and install symlinks for binaries shipped for arm
 
-buildarch=4
+buildarch=12
 
 pkgname=dart
-pkgver=1.24.2
+pkgver=2.4.1
 pkgrel=1
 pkgdesc='The dart programming language SDK'
-arch=('x86_64' 'i686' 'armv7h')
-url='http://www.dartlang.org/'
+arch=('x86_64' 'armv7h' 'aarch64')
+url='https://www.dartlang.org/'
+depends=('bash')
 license=('BSD')
 makedepends=('setconf')
 options=('!strip')
-source_x86_64+=("$pkgname-$pkgver-64.zip::http://storage.googleapis.com/dart-archive/channels/stable/release/latest/sdk/dartsdk-linux-x64-release.zip")
-source_i686+=("$pkgname-$pkgver-32.zip::http://storage.googleapis.com/dart-archive/channels/stable/release/latest/sdk/dartsdk-linux-ia32-release.zip")
-source_armv7h+=("$pkgname-$pkgver-arm.zip::http://storage.googleapis.com/dart-archive/channels/stable/release/latest/sdk/dartsdk-linux-arm-release.zip")
-sha512sums_x86_64=('848d0004494fa2c1a813b7530a14323b5dbb2af171eba5ff32e1abcbe4bfab4c83d412fb4cb80f6a93c2cdd94d8f1704410307cccf5a7419271bdfb57be79f37')
-sha512sums_i686=('0b8ec7cde3f84ac01651dc270c0e6600fc17d7bbe563ec94cd6829328520c141d61f4bded5704ddd2e3222d0d1d7888c19a4c156d81e5484dbbbde94a96df557')
-sha512ums_armv7h=('0fe30005de612699e374e4a92755352778d4b8f5e8846fbc4c5d05eedfc8c36905bc818f85ebf8ce5e26ead217c4f4519216eec5abb5b21c01c1dcc446e8c1ab')
+source_x86_64+=("$pkgname-$pkgver-64.zip::https://storage.googleapis.com/dart-archive/channels/stable/release/latest/sdk/dartsdk-linux-x64-release.zip")
+source_armv7h+=("$pkgname-$pkgver-arm.zip::https://storage.googleapis.com/dart-archive/channels/stable/release/latest/sdk/dartsdk-linux-arm-release.zip")
+source_aarch64+=("$pkgname-$pkgver-arm64.zip::https://storage.googleapis.com/dart-archive/channels/stable/release/latest/sdk/dartsdk-linux-arm64-release.zip")
+sha512sums_x86_64=('de85d0c97e8ded391478a9b5c78ce84dfbd0573516ec7fa758ee888a877fcb01551f6d7ac5875985fc36197d8f258a77fdcdb9ed5937a861fab8f3b3b4a8b70d')
+sha512sums_armv7h=('f990b03c3afcacb636caf66a215af75620843b6d1040a20c7bbc7ae5ec169ca5857c093f9800723f4b78e1e44bacff8f2175d0246c55c9aee4e4b033676d69a3')
+sha512sums_aarch64=('99f7d79c54f0f974b6a4a5256d6ebd56358544bdba5eafd243f5ab6b3e56be4618380dba08d64016dfadf2b4fd853c5e282a95e9b141afc461d07a927d387f51')
 
 prepare() {
   # Fix permissions
-  find "$pkgname-sdk" -type d -exec chmod 0755 '{}' + \
-    -or -type f -exec chmod 0644 '{}' +
-  chmod +x "$pkgname-sdk/bin/"*
+  find "$pkgname-sdk" -type d -exec chmod a+rx '{}' + \
+    -or -type f -exec chmod a+r '{}' +
 
   cd "$pkgname-sdk/bin"
 
   # Configure paths
-  setconf dart2js BIN_DIR "/opt/$pkgname-sdk/bin"
-  setconf dart2js PROG_NAME "/opt/$pkgname-sdk/bin/dart2js"
-  setconf dartanalyzer SCRIPT_DIR "/opt/$pkgname-sdk/bin"
-  setconf pub BIN_DIR "/opt/$pkgname-sdk/bin"
-  setconf pub SDK_DIR "/opt/$pkgname-sdk/"
-  setconf dartfmt BIN_DIR "/opt/$pkgname-sdk/bin"
-  setconf dartfmt SDK_DIR "/opt/$pkgname-sdk/"
+  for _f in dartanalyzer pub dartfmt dartdoc; do
+    setconf $_f BIN_DIR "/opt/$pkgname-sdk/bin"
+    setconf $_f PROG_NAME "/opt/$pkgname-sdk/bin/$_f"
+    setconf $_f SDK_DIR "/opt/$pkgname-sdk/"
+  done
 
   # Extract license (AUTHORS and LICENSE files are missing)
   head -n5 "../include/dart_api.h" > ../../LICENSE
@@ -57,7 +55,7 @@ package() {
   cp -a "$pkgname-sdk/"* "$pkgdir/opt/$pkgname-sdk/"
 
   # Set up symbolic links for the executables
-  for f in dart dart2js dartanalyzer pub dartfmt dartdevc; do
+  for f in dart dartanalyzer pub dartfmt dartdoc dart2aot dartaotruntime; do
     ln -s "/opt/$pkgname-sdk/bin/$f" "$pkgdir/usr/bin/$f"
   done
 

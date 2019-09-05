@@ -1,32 +1,41 @@
-# $Id$
-# Maintainer: Alexander F Rødseth <xyproto@archlinux.org>
+# Maintainer: Alexander F. Rødseth <xyproto@archlinux.org>
+# Contributor: David Runge <dave@sleepmap.de>
 # Contributor: Ray Rashif <schiv@archlinux.org>
 
 # ALARM: Kevin Mihelich <kevin@archlinuxarm.org>
 #  - remove --enable-sse from configure
 
 pkgname=calf
-pkgver=0.90.0
+pkgver=0.90.3
 pkgrel=1
-pkgdesc='LV2/DSSI/LADSPA plug-ins suite and standalone JACK host'
-arch=('x86_64' 'i686')
-url='https://calf-studio-gear.org/'
-license=('LGPL')
-depends=('dssi' 'fftw' 'fluidsynth' 'lash' 'libglade')
-makedepends=('ladspa' 'lv2')
+pkgdesc='LV2 plug-in suite and standalone Jack host'
+arch=('x86_64')
+url="https://calf-studio-gear.org"
+groups=('lv2-plugins' 'pro-audio')
+license=('LGPL2.1')
+depends=('fftw' 'fluidsynth' 'gtk2')
+makedepends=('lv2')
 source=("https://calf-studio-gear.org/files/$pkgname-$pkgver.tar.gz")
-sha256sums=('2b32007c4769b0bcc9898c088d26562b1ab1d57a68130d0235e7d27da4d83236')
+sha256sums=('e32bc23fb68f88729bdef361614fd9ac38627c774c35cd3c4eb611fca887a49f')
+
+prepare(){
+  cd "$pkgname-$pkgver"
+  autoreconf -vfi
+}
 
 build() {
   cd "$pkgname-$pkgver"
-
-  ./configure	--prefix=/usr --enable-experimental
+  ./configure --prefix=/usr \
+              --with-lv2 \
+              --enable-experimental
   make
 }
 
 package() {
-  make -C "$pkgname-$pkgver" DESTDIR="$pkgdir" install
+  cd "$pkgname-$pkgver"
+  make DESTDIR="$pkgdir" install
+  install -vDm 644 {AUTHORS,ChangeLog,README} \
+    -t "${pkgdir}/usr/share/doc/${pkgname}"
 }
 
-# getver: raw.githubusercontent.com/calf-studio-gear/calf/master/configure.ac
 # vim: ts=2 sw=2 et:

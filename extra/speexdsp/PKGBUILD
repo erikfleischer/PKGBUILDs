@@ -1,26 +1,21 @@
-# $Id$
 # Maintainer: Jan Alexander Steffens (heftig) <jan.steffens@gmail.com>
 
 # ALARM: Kevin Mihelich <kevin@archlinuxarm.org>
 #  - configure with --disable-neon
 
 pkgname=speexdsp
-pkgver=1.2rc3
-pkgrel=2.1
+pkgver=1.2.0
+pkgrel=1
 pkgdesc="DSP library derived from Speex"
-arch=(i686 x86_64)
-url="http://www.speex.org/"
+arch=(x86_64)
+url="https://www.speex.org/"
 license=(BSD)
 depends=(glibc)
-source=(http://downloads.us.xiph.org/releases/speex/$pkgname-$pkgver.tar.gz
-        speexdsp-fixbuilds-774c87d.patch)
-sha256sums=('4ae688600039f5d224bdf2e222d2fbde65608447e4c2f681585e4dca6df692f1'
-            '76cd6b1187f415d966c8d62003cd87cfb66e4030b250a316aab8f0fbc2de226a')
+source=(https://downloads.us.xiph.org/releases/speex/$pkgname-$pkgver.tar.gz)
+sha512sums=('e357cd5377415ea66c862302c7cf8bf6a10063cacd903f0846478975b87974cf5bdf00e2c6759d8f4f453c4c869cf284e9dc948a84a83d7b2ab96bd5405c05ec')
 
 prepare() {
   cd $pkgname-$pkgver
-  patch -Np1 -i ../speexdsp-fixbuilds-774c87d.patch
-  autoreconf -vi
 }
 
 build() {
@@ -37,5 +32,5 @@ check() {
 package() {
   cd $pkgname-$pkgver
   make DESTDIR="$pkgdir" install
-  install -Dm644 COPYING "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+  install -Dt "$pkgdir/usr/share/licenses/$pkgname" -m644 COPYING 
 }

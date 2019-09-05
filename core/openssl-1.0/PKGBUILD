@@ -1,17 +1,16 @@
-# $Id: PKGBUILD 287592 2017-01-28 07:20:49Z pierre $
 # Maintainer: Pierre Schmitz <pierre@archlinux.de>
 
 # ALARM: Kevin Mihelich <kevin@archlinuxarm.org>
 #  - set ARM architecture targets
 
 pkgname=openssl-1.0
-_ver=1.0.2l
+_ver=1.0.2s
 # use a pacman compatible version scheme
 pkgver=${_ver/[a-z]/.${_ver//[0-9.]/}}
 #pkgver=$_ver
 pkgrel=1
 pkgdesc='The Open Source toolkit for Secure Sockets Layer and Transport Layer Security'
-arch=('i686' 'x86_64')
+arch=('x86_64')
 url='https://www.openssl.org'
 license=('custom:BSD')
 depends=('perl')
@@ -22,12 +21,13 @@ source=("https://www.openssl.org/source/openssl-${_ver}.tar.gz"
         'no-rpath.patch'
         'ssl3-test-failure.patch'
         'openssl-1.0-versioned-symbols.patch')
-sha256sums=('ce07195b659e75f4e1db43552860070061f156a98bb37b672b101ba6e3ddf30c'
+sha256sums=('cabd5c9492825ce5bd23f3c3aeed6a97f8142f606d893df216411f07d1abab96'
             'SKIP'
             '754d6107a306311e15a1db6a1cc031b81691c8b9865e8809ac60ca6f184c957c'
             'c54ae87c602eaa1530a336ab7c6e22e12898e1941012349c153e52553df64a13'
             '353a84e4c92e36c379ebd9216b8f8fb9c271396583561eb84ac8c825979acaa6')
-validpgpkeys=('8657ABB260F056B1E5190839D9C4D26D0E604491')
+validpgpkeys=('8657ABB260F056B1E5190839D9C4D26D0E604491'
+              '7953AC1FBC3DC8B3B292393ED5E9E43F7DF9EE8C')
 
 prepare() {
 	cd $srcdir/openssl-$_ver

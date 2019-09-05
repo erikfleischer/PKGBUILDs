@@ -1,4 +1,3 @@
-# $Id$
 # Maintainer: Jan de Groot <jgc@archlinux.org>
 # Contributor: Alexander Baldeck <alexander@archlinux.org>
 
@@ -6,17 +5,17 @@
 #  - --enable-64bit for AArch64
 
 pkgname=nspr
-pkgver=4.17
+pkgver=4.22
 pkgrel=1
 pkgdesc="Netscape Portable Runtime"
 url="https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSPR"
-arch=(i686 x86_64)
+arch=(x86_64)
 license=(MPL GPL)
 depends=(glibc sh)
 makedepends=(zip)
 source=(https://ftp.mozilla.org/pub/mozilla.org/nspr/releases/v${pkgver}/src/nspr-${pkgver}.tar.gz)
-sha1sums=('5262abb243191d5fa3dcd72857d7d7f8ec47ad01')
-sha256sums=('590a0aea29412ae22d7728038c21ef2ab42646e48172a47d2e4bb782846d1095')
+sha1sums=('69bd044d4a258a9c1cb1062a182fb8a30f0ad641')
+sha256sums=('c9e4b6cc24856ec93202fe13704b38b38ba219f0f2aeac93090ce2b6c696d430')
 
 prepare() {
   cd nspr-$pkgver/nspr
@@ -31,7 +30,10 @@ build() {
       --enable-optimize \
       --disable-debug \
       $([[ $CARCH == x86_64 || $CARCH == aarch64 ]] && echo --enable-64bit)
-  make
+  make ${SOURCE_DATE_EPOCH:+
+    SH_NOW="${SOURCE_DATE_EPOCH}000000"
+    SH_DATE="$(date --utc --date="@$SOURCE_DATE_EPOCH" '+%Y-%m-%d %T')"
+}
 }
 
 package() {

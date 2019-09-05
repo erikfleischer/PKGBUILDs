@@ -1,4 +1,3 @@
-# $Id$
 # Maintainer: Sébastien Luttringer
 
 # ALARM: Kevin Mihelich <kevin@archlinuxarm.org>
@@ -9,29 +8,31 @@
 
 pkgbase=linux-tools
 pkgname=(
+  'bpf'
   'cgroup_event_listener'
   'cpupower'
   'hyperv'
   'libtraceevent'
   'linux-tools-meta'
   'perf'
+#  'python-perf'
   'tmon'
   'usbip'
   'gpio-utils'
   'iio-utils'
 )
-pkgver=4.13
+pkgver=5.2
 pkgrel=1
 license=('GPL2')
-arch=('i686' 'x86_64')
+arch=('x86_64')
 url='https://www.kernel.org'
-options=('!strip' '!distcc')
+options=('!strip' '!distcc' '!makeflags')
 makedepends=('git')
 # split packages need all package dependencies set manually in makedepends
 # kernel source deps
 makedepends+=('asciidoc' 'xmlto')
 # perf deps
-makedepends+=('perl' 'python2' 'slang' 'elfutils' 'libunwind' 'audit' 'gtk2')
+makedepends+=('perl' 'python' 'slang' 'elfutils' 'libunwind' 'audit' 'gtk2')
 # cpupower deps
 makedepends+=('pciutils')
 # usbip deps
@@ -39,14 +40,16 @@ makedepends+=('glib2' 'sysfsutils' 'udev')
 # tmon deps
 makedepends+=('ncurses')
 groups=("$pkgbase")
-source=("https://cdn.kernel.org/pub/linux/kernel/v4.x/linux-${pkgver}.tar.xz"
-#        'https://cdn.kernel.org/pub/linux/kernel/v4.x/patch-4.12.2.xz'
+source=("https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-${pkgver}.tar.xz"
+        "https://cdn.kernel.org/pub/linux/kernel/v5.x/patch-$pkgver.1.xz"
+        '0001-perf-fix-debug-printf-for-32-bit.patch'
         'cpupower.default'
         'cpupower.systemd'
         'cpupower.service'
         'usbipd.service')
-md5sums=('ab1a2abc6f37b752dd2595338bec4e78'
-         '6c0bdf6ebe33ca5b3ba4ea1a5668051b'
+md5sums=('ddf994de00d7b18395886dd9b30b9262'
+         'a45be902d46625f7b554f17bab3686f0'
+         '79157a49024739b249e8f16e5b31eb31'
          '56883c159381ba89e50ab8ea65efec77'
          '34f5ecc19770a1abbcd0fd65bfd1f065'
          '86c4e419e4ba80835c330d49ba3f56ad'
@@ -54,10 +57,6 @@ md5sums=('ab1a2abc6f37b752dd2595338bec4e78'
 
 prepare() {
   cd linux-$pkgver
-
-  # Fix "unwind-libunwind.c:109:11: error: ‘EINVAL’ undeclared" on i686
-  # Not sure why this wasn't an issue until now...
-  sed -i '1i #include <errno.h>' tools/perf/arch/x86/util/unwind-libunwind.c
 
   # apply patch from the source array (should be a pacman feature)
   local filename
@@ -86,8 +85,8 @@ build() {
     lib=lib/perf \
     perfexecdir=lib/perf \
     NO_SDT=1 \
-    PYTHON=python2 \
-    PYTHON_CONFIG=python2-config \
+    PYTHON=python \
+    PYTHON_CONFIG=python-config \
     PERF_VERSION=$pkgver-$pkgrel \
     DESTDIR="$pkgdir" \
     all man
@@ -95,13 +94,13 @@ build() {
 
   msg2 'cpupower'
   pushd linux-$pkgver/tools/power/cpupower
-  # we cannot use --as-needed
-  #LDFLAGS=${LDFLAGS:+"$LDFLAGS,--no-as-needed"}
   make VERSION=$pkgver-$pkgrel
   popd
 
   msg2 'usbip'
   pushd linux-$pkgver/tools/usb/usbip
+  # Fix gcc compilation
+  sed -i 's,-Wall -Werror -Wextra,,' configure.ac
   ./autogen.sh
   ./configure --prefix=/usr --sbindir=/usr/bin
   make
@@ -119,16 +118,25 @@ build() {
 
   msg2 'hv'
   pushd linux-$pkgver/tools/hv
-  make
+  CFLAGS+=' -DKVP_SCRIPTS_PATH=/usr/lib/hyperv/kvp_scripts/' make
   popd
 
   msg2 'gpio'
   pushd linux-$pkgver/tools/gpio
-  make -j1
+  make
   popd
 
   msg2 'iio'
   pushd linux-$pkgver/tools/iio
+  make
+  popd
+
+  msg2 'bpf'
+  pushd linux-$pkgver/tools/bpf
+  # doesn't compile when we don't first compile bpftool in its directory
+  cd bpftool
+  make
+  cd ..
   make
   popd
 }
@@ -137,11 +145,13 @@ package_linux-tools-meta() {
   pkgdesc='Linux kernel tools meta package'
   groups=()
   depends=(
+    'bpf'
     'cgroup_event_listener'
     'cpupower'
     'hyperv'
     'libtraceevent'
     'perf'
+#    'python-perf'
     'tmon'
     'usbip'
   )
@@ -161,8 +171,8 @@ package_libtraceevent() {
 
 package_perf() {
   pkgdesc='Linux kernel performance auditing tool'
-  depends=('perl' 'python2' 'slang' 'elfutils' 'libunwind' 'binutils'
-           'audit')
+  depends=('glibc' 'perl' 'python' 'slang' 'elfutils' 'libunwind' 'binutils'
+           'audit' 'coreutils' 'glib2' 'xz' 'zlib' 'libelf' 'bash')
   optdepends=('gtk2: support GTK2 browser for perf report')
 
   cd linux-$pkgver/tools/perf
@@ -171,8 +181,8 @@ package_perf() {
     lib=lib/perf \
     perfexecdir=lib/perf \
     NO_SDT=1 \
-    PYTHON=python2 \
-    PYTHON_CONFIG=python2-config \
+    PYTHON=python \
+    PYTHON_CONFIG=python-config \
     PERF_VERSION=$pkgver-$pkgrel \
     DESTDIR="$pkgdir" \
     install install-man
@@ -187,10 +197,19 @@ package_perf() {
   find usr/share -type f -exec chmod a-x {} \;
 }
 
+#package_python-perf(){
+#  pkgdesc='Linux kernel performance auditing tool (python bindings)'
+#  depends=('python')
+#
+#  cd linux/tools/perf
+#
+#  make install-python_ext PYTHON=python DESTDIR="$pkgdir"
+#}
+
 package_cpupower() {
   pkgdesc='Linux kernel tool to examine and tune power saving related features of your processor'
   backup=('etc/default/cpupower')
-  depends=('bash' 'pciutils')
+  depends=('glibc' 'bash' 'pciutils')
   conflicts=('cpufrequtils')
   replaces=('cpufrequtils')
   install=cpupower.install
@@ -199,6 +218,7 @@ package_cpupower() {
   make \
     DESTDIR="$pkgdir" \
     sbindir='/usr/bin' \
+    libdir='/usr/lib' \
     mandir='/usr/share/man' \
     docdir='/usr/share/doc/cpupower' \
     install install-man
@@ -211,7 +231,7 @@ package_cpupower() {
 
 package_usbip() {
   pkgdesc='An USB device sharing system over IP network'
-  depends=('glib2' 'sysfsutils' 'libsystemd')
+  depends=('glibc' 'glib2' 'sysfsutils' 'systemd-libs')
 
   pushd linux-$pkgver/tools/usb/usbip
   make install DESTDIR="$pkgdir"
@@ -247,6 +267,7 @@ package_hyperv() {
   for _p in hv_fcopy_daemon hv_kvp_daemon hv_vss_daemon; do
     install -Dm755 "$_p" "$pkgdir/usr/bin/$_p"
   done
+  install -dm755 "$pkgdir/usr/lib/hyperv/kvp_scripts"
 }
 
 package_gpio-utils() {
@@ -262,7 +283,18 @@ package_iio-utils() {
   depends=('glibc')
 
   cd linux-$pkgver/tools/iio
-  make install INSTALL_ROOT="$pkgdir"
+  make install DESTDIR="$pkgdir"
+}
+
+package_bpf() {
+  pkgdesc='BPF tools'
+  depends=('glibc')
+
+  cd linux-$pkgver/tools/bpf
+  make install prefix=/usr DESTDIR="$pkgdir"
+  # fix bpftool hard written path
+  mv "$pkgdir"/usr/sbin/bpftool "$pkgdir"/usr/bin/bpftool
+  rmdir "$pkgdir"/usr/sbin
 }
 
 # vim:set ts=2 sw=2 et:

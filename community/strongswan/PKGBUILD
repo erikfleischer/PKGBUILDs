@@ -13,20 +13,22 @@
 #  - remove --enable-aesni from configure
 
 pkgname=strongswan
-pkgver=5.6.1
-pkgrel=1
-pkgdesc="open source IPsec implementation"
-url='http://www.strongswan.org'
-license=("GPL2")
+pkgver=5.8.0
+pkgrel=2
+pkgdesc='Open source IPsec implementation'
+url='https://www.strongswan.org'
+license=('GPL2')
 arch=('x86_64')
-makedepends=('curl' 'gmp' 'iproute2' 'openssl' 'sqlite' 'libcap' 'libsystemd'
-'systemd' 'pam' 'libnm-glib' 'python' 'ruby' 'mariadb' 'python-setuptools')
-depends=('curl' 'gmp' 'iproute2' 'openssl' 'sqlite' 'libcap' 'libsystemd' 'pam')
+makedepends=('curl' 'gmp' 'iproute2' 'openssl' 'sqlite' 'libcap' 'systemd-libs'
+             'systemd' 'pam' 'libnm-glib' 'python' 'ruby' 'mariadb' 'python-setuptools')
+depends=('curl' 'gmp' 'iproute2' 'openssl' 'sqlite' 'libcap' 'systemd-libs' 'pam')
 optdepends=('libnm-glib: for networkmanager support'
             'mariadb: MySQL support'
             'ruby: Ruby support'
             'python: Python support'
+            'resolvconf: Resolveplugin'
             'openldap: LDAP support')
+# TODO: move to package() and use find
 backup=(
     etc/ipsec.conf
     etc/ipsec.secrets
@@ -40,17 +42,16 @@ eap-sim.conf,eap-simaka-pseudonym.conf,eap-simaka-reauth.conf,eap-tls.conf,ext-a
 fips-prf.conf,forecast.conf,gmp.conf,ha.conf,hmac.conf,kernel-netlink.conf,md5.conf,mgf1.conf,nonce.conf,newhope.conf,ntru.conf,openssl.conf,\
 pem.conf,pgp.conf,pkcs1.conf,pkcs12.conf,pkcs7.conf,pkcs8.conf,pubkey.conf,random.conf,rc2.conf,resolve.conf,\
 revocation.conf,sha1.conf,sha2.conf,sha3.conf,socket-default.conf,sql.conf,sqlite.conf,sshkey.conf,stroke.conf,updown.conf,\
-vici.conf,x509.conf,xauth-eap.conf,xauth-generic.conf,xcbc.conf,unity.conf,curve25519.conf}
+vici.conf,x509.conf,xauth-eap.conf,xauth-generic.conf,xcbc.conf,unity.conf,curve25519.conf,bypass-lan.conf}
 )
 
-source=("https://download.strongswan.org/strongswan-${pkgver}.tar.bz2"
-    "https://download.strongswan.org/strongswan-${pkgver}.tar.bz2.sig"
+source=("https://download.strongswan.org/strongswan-${pkgver}.tar.bz2"{,.sig}
     'configure_ac.patch'
     )
 
 validpgpkeys=("948F158A4E76A27BF3D07532DF42C170B34DBA77")
 
-sha512sums=('e4bdcf434739cf18544e18635c0b2e34c8b39e9c6c7a7cab31972bae6b1922da324f47c333fc478fa6177f58a2e59c438c48420c74086da1c0555e9a9361834e'
+sha512sums=('bf70aa6f9bb3d64d7cf02c7efd9053830efaa51b4cb20bd18dc75b1f0e7532c6217b4074b24dc10bd214484442bc496a57f7ca46bb341c50153feff98cd2bf94'
             'SKIP'
             '0e2c818f2f620410dda949d9016a4c1a686bf2946acb3b42a729b2376c077f4dad6762fe8d2f736c213c4895c1fbd60c0d654a1c36f72d06f58ba7cff635bc74')
 
@@ -58,42 +59,82 @@ sha512sums=('e4bdcf434739cf18544e18635c0b2e34c8b39e9c6c7a7cab31972bae6b1922da324
 # would case processing to be handled in user space. Also, the plugin is experimental. If you need it,
 # add --enable-libipsec and --enable-kernel-libipsec
 prepare() {
-    cd "${srcdir}/${pkgname}-${pkgver}"
-    patch -p1 -l < "${srcdir}/configure_ac.patch"
-    autoreconf
+  cd ${pkgname}-${pkgver}
+  patch -p1 -l < "${srcdir}/configure_ac.patch"
+  autoreconf -fiv
 }
 
 build() {
-  cd "${srcdir}/${pkgname}-${pkgver}"
+  cd ${pkgname}-${pkgver}
 
   ./configure --prefix=/usr \
-        --sbindir=/usr/bin \
-        --sysconfdir=/etc \
-        --libexecdir=/usr/lib \
-        --with-ipsecdir=/usr/lib/strongswan \
-        --with-nm-ca-dir=/etc/ssl/certs \
-        --enable-integrity-test \
-        --enable-sqlite \
-        --enable-openssl --enable-curl \
-        --enable-sql --enable-attr-sql \
-        --enable-farp --enable-dhcp \
-        --enable-eap-sim --enable-eap-sim-file --enable-eap-simaka-pseudonym \
-        --enable-eap-simaka-reauth --enable-eap-identity --enable-eap-md5 \
-        --enable-eap-gtc --enable-eap-aka --enable-eap-aka-3gpp2 \
-        --enable-eap-mschapv2 --enable-eap-radius --enable-xauth-eap \
-        --enable-ha --enable-vici --enable-swanctl --enable-systemd --enable-ext-auth \
-        --enable-mysql --enable-ldap --enable-cmd --enable-forecast --enable-connmark \
-        --enable-eap-ttls --enable-radattr --enable-xauth-pam --enable-xauth-noauth \
-        --enable-eap-dynamic --enable-eap-peap --enable-eap-tls --enable-chapoly --enable-unity \
-        --with-capabilities=libcap --enable-newhope --enable-ntru --enable-mgf1 --enable-sha3 \
-        --enable-bliss --enable-dnscert \
-        --enable-nm --enable-agent --enable-bypass-lan \
-        --enable-ruby-gems --enable-python-eggs
+    --sbindir=/usr/bin \
+    --sysconfdir=/etc \
+    --libexecdir=/usr/lib \
+    --with-ipsecdir=/usr/lib/strongswan \
+    --with-nm-ca-dir=/etc/ssl/certs \
+    --enable-integrity-test \
+    --enable-sqlite \
+    --enable-pkcs11 \
+    --enable-openssl \
+    --enable-curl \
+    --enable-sql \
+    --enable-attr-sql \
+    --enable-farp \
+    --enable-dhcp \
+    --enable-eap-sim \
+    --enable-eap-sim-file \
+    --enable-eap-simaka-pseudonym \
+    --enable-eap-simaka-reauth \
+    --enable-eap-identity \
+    --enable-eap-md5 \
+    --enable-eap-gtc \
+    --enable-eap-aka \
+    --enable-eap-aka-3gpp2 \
+    --enable-eap-mschapv2 \
+    --enable-eap-radius \
+    --enable-xauth-eap \
+    --enable-ha \
+    --enable-vici \
+    --enable-swanctl \
+    --enable-systemd \
+    --enable-ext-auth \
+    --enable-mysql \
+    --enable-ldap \
+    --enable-cmd \
+    --enable-forecast \
+    --enable-connmark \
+    --enable-eap-ttls \
+    --enable-radattr \
+    --enable-xauth-pam \
+    --enable-xauth-noauth \
+    --enable-eap-dynamic \
+    --enable-eap-peap \
+    --enable-eap-tls \
+    --enable-chapoly \
+    --enable-unity \
+    --with-capabilities=libcap \
+    --enable-newhope \
+    --enable-ntru \
+    --enable-mgf1 \
+    --enable-sha3 \
+    --enable-bliss \
+    --enable-dnscert \
+    --enable-nm \
+    --enable-agent \
+    --enable-bypass-lan \
+    --enable-ruby-gems \
+    --enable-python-eggs
   make
 }
 
 package() {
-  cd "${srcdir}/${pkgname}-${pkgver}"
+  cd ${pkgname}-${pkgver}
   make DESTDIR="${pkgdir}" install
+  install -Dm644 "${pkgdir}/etc/dbus-1/system.d/nm-strongswan-service.conf" "${pkgdir}/usr/share/dbus-1/system.d/nm-strongswan-service.conf"
+  rm -v "${pkgdir}/etc/dbus-1/system.d/nm-strongswan-service.conf"
+  # remove empty directory
+  rmdir -v "${pkgdir}/etc/dbus-1/system.d"
 }
 
+# vim: ts=2 sw=2 et:

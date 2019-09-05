@@ -1,39 +1,44 @@
-# $Id$
 # Maintainer: Felix Yan <felixonmars@archlinux.org>
 # Contributor: Andrea Scarpino <andrea@archlinux.org>
 
 # ALARM: Kevin Mihelich <kevin@archlinuxarm.org>
 #  - -no-reduce-relocations -- not available on ARM
 #  - explicitly disable x86 optimizations
+#  - -no-feature-getentropy for old kernel compatibility
 
 pkgbase=qt5-base
 pkgname=(qt5-base qt5-xcb-private-headers)
-_qtver=5.9.2
+_qtver=5.13.0
 pkgver=${_qtver/-/}
-pkgrel=2
+pkgrel=7
 arch=('x86_64')
-url='http://qt-project.org/'
+url='https://www.qt.io'
 license=('GPL3' 'LGPL3' 'FDL' 'custom')
 pkgdesc='A cross-platform application and UI framework'
-depends=('libjpeg-turbo' 'xcb-util-keysyms' 'xcb-util-renderutil' 'libgl' 'fontconfig'
-         'xcb-util-wm' 'libxrender' 'libxi' 'sqlite' 'xcb-util-image' 'icu' 'pcre2'
-         'tslib' 'libinput' 'libsm' 'libxkbcommon-x11' 'libproxy' 'libcups' 'openssl-1.0' 'double-conversion')
-makedepends=('libfbclient' 'libmariadbclient' 'sqlite' 'unixodbc' 'postgresql-libs' 'alsa-lib' 'gst-plugins-base-libs'
-             'gtk3' 'libpulse' 'cups' 'freetds')
+depends=('libjpeg-turbo' 'xcb-util-keysyms' 'xcb-util-renderutil' 'libgl' 'fontconfig' 'xdg-utils'
+         'shared-mime-info' 'xcb-util-wm' 'libxrender' 'libxi' 'sqlite' 'xcb-util-image' 'mesa'
+         'tslib' 'libinput' 'libxkbcommon-x11' 'libproxy' 'libcups' 'double-conversion')
+makedepends=('libfbclient' 'mariadb-libs' 'sqlite' 'unixodbc' 'postgresql-libs' 'alsa-lib' 'gst-plugins-base-libs'
+             'gtk3' 'libpulse' 'cups' 'freetds' 'vulkan-headers')
 optdepends=('qt5-svg: to use SVG icon themes'
+            'qt5-translations: for some native UI translations'
             'postgresql-libs: PostgreSQL driver'
-            'libmariadbclient: MariaDB driver'
+            'mariadb-libs: MariaDB driver'
             'unixodbc: ODBC driver'
             'libfbclient: Firebird/iBase driver'
             'freetds: MS SQL driver'
             'gtk3: GTK platform plugin')
 conflicts=('qtchooser')
 groups=('qt' 'qt5')
-_pkgfqn="${pkgbase/5-/}-opensource-src-${_qtver}"
-source=("http://download.qt.io/official_releases/qt/${pkgver%.*}/${_qtver}/submodules/${_pkgfqn}.tar.xz"
-        harmony-fix.diff)
-sha256sums=('7fe2bb468955f633c71b3ddd3c269e68a2c4137a4e5b8dd12dcdb34cbc6d609b'
-            '8451c0a86e887492b706950ce533c616e687b790c54e86fb1f405dc2074737a3')
+_pkgfqn="${pkgbase/5-/}-everywhere-src-${_qtver}"
+source=("https://download.qt.io/official_releases/qt/${pkgver%.*}/${_qtver}/submodules/${_pkgfqn}.tar.xz"
+        qtbase-qxcbwindow.patch::"https://code.qt.io/cgit/qt/qtbase.git/patch/?id=0c183117"
+        qtbase-zlib-compression.patch::"https://code.qt.io/cgit/qt/qtbase.git/patch/?id=cbdc9a77"
+        virtualbox-focus.patch)
+sha256sums=('ff6964b3b528cd3b1d21bcf3470006e8e5cbe69591923f982871d886ea0488fe'
+            '51878fdf91d3f191fb4e19cd9ec3fc4c564bbf1eabe92802b40db2ec8ad1d646'
+            '9300d8ab7abe4145e92eea75178a26ad3d5a71b0646665c3776ca2c375dd1233'
+            '21c4acce7a789cd0e1e67aca76cf15f536ae8e30ef711a434cfe7ec377556f06')
 
 prepare() {
   cd ${_pkgfqn}
@@ -45,24 +50,15 @@ prepare() {
   sed -i -e "s|^\(QMAKE_LFLAGS_RELEASE.*\)|\1 ${LDFLAGS}|" \
     mkspecs/common/g++-unix.conf
 
-  # Use python2 for Python 2.x
-  find . -name '*.py' -exec sed -i \
-    's|#![ ]*/usr/bin/python$|&2|;s|#![ ]*/usr/bin/env python$|&2|' {} +
-
-  # Fix missing private includes https://bugreports.qt.io/browse/QTBUG-37417
-  sed -e '/CMAKE_NO_PRIVATE_INCLUDES\ \=\ true/d' -i mkspecs/features/create_cmake.prf
-
-  # Freetype 2.8.1
-  patch -p1 -i ../harmony-fix.diff
+  patch -p1 -i ../qtbase-qxcbwindow.patch # Fix NVIDIA freeze
+  patch -p1 -i ../qtbase-zlib-compression.patch # Change the default compression back to zlib for backwards compatibility
+  patch -p1 -i ../virtualbox-focus.patch # Fix virtualbox constantly stealing focus https://bugreports.qt.io/browse/QTBUG-76742
 }
 
 build() {
   cd ${_pkgfqn}
 
-  echo "INCLUDEPATH += /usr/include/openssl-1.0" >> src/network/network.pro
-  export OPENSSL_LIBS='-L/usr/lib/openssl-1.0 -lssl -lcrypto'
-
-  PYTHON=/usr/bin/python2 ./configure -confirm-license -opensource -v \
+  ./configure -confirm-license -opensource -v \
     -prefix /usr \
     -docdir /usr/share/doc/qt \
     -headerdir /usr/include/qt \
@@ -79,6 +75,7 @@ build() {
     -dbus-linked \
     -system-harfbuzz \
     -journald \
+    -no-mimetype-database \
     -no-use-gold-linker \
     -no-reduce-relocations \
     -no-sse2 \
@@ -87,7 +84,8 @@ build() {
     -no-sse4.1 \
     -no-sse4.2 \
     -no-avx \
-    -no-avx2
+    -no-avx2 \
+    -no-feature-getentropy
 
   make
 }
@@ -98,8 +96,7 @@ package_qt5-base() {
   cd ${_pkgfqn}
   make INSTALL_ROOT="${pkgdir}" install
 
-  install -D -m644 LGPL_EXCEPTION.txt \
-    "${pkgdir}"/usr/share/licenses/${pkgbase}/LGPL_EXCEPTION.txt
+  install -Dm644 LICENSE* -t "$pkgdir"/usr/share/licenses/$pkgbase
 
   # Drop QMAKE_PRL_BUILD_DIR because reference the build dir
   find "${pkgdir}/usr/lib" -type f -name '*.prl' \
@@ -111,7 +108,7 @@ package_qt5-base() {
 
   # Symlinks for backwards compatibility
   for b in "${pkgdir}"/usr/bin/*; do
-    ln -s /usr/bin/$(basename $b) "${pkgdir}"/usr/bin/$(basename $b)-qt5
+    ln -s $(basename $b) "${pkgdir}"/usr/bin/$(basename $b)-qt5
   done
 }
 
